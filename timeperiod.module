@@ -6,6 +6,18 @@
  */
 
 /**
+ * Implements hook_date_theme().
+ */
+function timeperiod_theme() {
+  return array(
+    'timeperiod_unit_field_ui' => array(
+      'render element' => 'form',
+      'file' => 'timeperiod.module',
+    ),
+  );
+}
+
+/**
  * Implements hook_element_info().
  */
 function timeperiod_element_info() {
@@ -204,15 +216,23 @@ function timeperiod_field_widget_settings_form($field, $instance) {
   $widget = $instance['widget'];
   $settings = $widget['settings'];
 
-  $form['units'] = array(
+  $form = array(
+    '#element_validate' => array('timeperiod_field_widget_settings_form_validate'),
+  );
+
+  $form['timeperiod'] = array(
     '#type' => 'fieldset',
     '#title' => t('Available units'),
     '#description' => t('Configure the available values per unit, applying the step size starting from 0 until the maxium is reached. Setting the maximum value to "0" completely disables a unit.'),
     '#tree' => TRUE,
     '#weight' => 10,
   );
+
+  $form['timeperiod']['units']['#theme'] = 'timeperiod_unit_field_ui';
+
   foreach (timeperiod_element_units() as $unit => $label) {
-    $form['units'][$unit]['max'] = array(
+    $form['timeperiod']['units'][$unit]['#unit_label'] = $label;
+    $form['timeperiod']['units'][$unit]['max'] = array(
       '#type' => 'textfield',
       '#title' => t('@unit maximum value', array('@unit' => drupal_ucfirst($label))),
       '#default_value' => isset($settings['units'][$unit]['max']) ? $settings['units'][$unit]['max'] : 0,
@@ -220,7 +240,7 @@ function timeperiod_field_widget_settings_form($field, $instance) {
       '#size' => 2,
       '#element_validate' => array('timeperiod_element_validate_integer_positive_or_zero'),
     );
-    $form['units'][$unit]['step size'] = array(
+    $form['timeperiod']['units'][$unit]['step size'] = array(
       '#type' => 'textfield',
       '#title' => t('@unit step size', array('@unit' => drupal_ucfirst($label))),
       '#default_value' => isset($settings['units'][$unit]['step size']) ? $settings['units'][$unit]['step size'] : 1,
@@ -230,6 +250,48 @@ function timeperiod_field_widget_settings_form($field, $instance) {
     );
   }
   return $form;
+}
+
+/**
+ * Validate callback for timeperiod_field_widget_settings_form().
+ */
+function timeperiod_field_widget_settings_form_validate(&$form, &$form_state) {
+  $settings = $form_state['values']['instance']['widget']['settings'];
+  $settings = array_merge($settings, $settings['timeperiod']);
+  unset($settings['timeperiod']);
+  form_set_value(array('#parents' => array('instance', 'widget', 'settings')), $settings, $form_state);
+}
+
+/**
+ * Theme callback for timeperiod_field_widget_settings_form().
+ */
+function theme_timeperiod_unit_field_ui($variables) {
+  $form = $variables['form'];
+  $rows = array();
+
+  $header = array(
+    t('Units'),
+    t('Maximum value'),
+    t('Step size'),
+  );
+
+  foreach (element_children($form) as $unit) {
+    foreach (element_children($form[$unit]) as $field_name) {
+      $form[$unit][$field_name]['#title_display'] = 'invisible';
+    }
+
+    $rows[] = array(
+      $form[$unit]['#unit_label'],
+      render($form[$unit]['max']),
+      render($form[$unit]['step size']),
+    );
+  }
+
+  return theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'empty' => t('No units found.'),
+  )) . drupal_render_children($form);
 }
 
 /**
