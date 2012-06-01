@@ -179,6 +179,20 @@ function timeperiod_field_widget_form(&$form, &$form_state, $field, $instance, $
  * Implements hook_field_widget_error().
  */
 function timeperiod_field_widget_error($element, $error, $form, &$form_state) {
+  // Rewrite integer error message to interval string.
+  $instance = field_info_instance($element['value']['#entity_type'], $element['value']['#field_name'], $element['value']['#bundle']);
+
+  if ($error['error'] == 'number_min') {
+    $min = $instance['settings']['min'];
+    $min = ($min < 0) ? $min * -1 : $min;
+    $error['message'] = t('%name: the value may be no less than %min.', array('%name' => $instance['label'], '%min' => format_interval($min, 7)));
+  }
+  else if ($error['error'] == 'number_max') {
+    $max = $instance['settings']['max'];
+    $max = ($max < 0) ? $max * -1 : $max;
+    $error['message'] = t('%name: the value may be no greater than %max.', array('%name' => $instance['label'], '%max' => format_interval($max, 7)));
+  }
+
   form_error($element['value'], $error['message']);
 }
 
