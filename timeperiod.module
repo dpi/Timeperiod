@@ -41,8 +41,26 @@ function timeperiod_element_process($element, &$form_state) {
 
   $value = isset($element['#default_value']) ? $element['#default_value'] : 0;
   $unit_labels = timeperiod_element_units();
-  foreach ($element['#units'] as $unit => $info) {
 
+  $polarity = array();
+
+  if (!empty($element['#polarity']['positive'])) {
+    $polarity['positive'] = '+';
+  }
+  if (!empty($element['#polarity']['negative'])) {
+    $polarity['negative'] = '-';
+  }
+
+  $element['polarity'] = array(
+    '#type' => 'select',
+    '#options' => $polarity,
+    '#access' => count($polarity) > 1,
+    '#default_value' => ($value < 0) ? 'negative' : 'positive',
+  );
+
+  $value = ($value < 0) ? $value * -1 : $value;
+
+  foreach ($element['#units'] as $unit => $info) {
     $element[$unit] = array(
       '#type' => 'select',
       '#options' => drupal_map_assoc(range(0, $info['max'], $info['step size'])),
@@ -88,6 +106,11 @@ function timeperiod_element_after_build($element, &$form_state) {
   foreach ($element['#units'] as $unit => $max) {
     $element['#value'] += $unit * $element[$unit]['#value'];
   }
+
+  if ($element['polarity']['#value'] == 'negative') {
+    $element['#value'] *= -1;
+  }
+
   form_set_value($element, $element['#value'], $form_state);
   return $element;
 }
@@ -112,10 +135,20 @@ function timeperiod_field_widget_info() {
  * Implements hook_field_widget_form().
  */
 function timeperiod_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $polarity = array('positive' => TRUE);
+
+  if (is_numeric($instance['settings']['min']) && $instance['settings']['min'] < 0) {
+    $polarity['negative'] = TRUE;
+  }
+
+  if (is_numeric($instance['settings']['max']) && $instance['settings']['max'] < 0) {
+    $polarity['positive'] = FALSE;
+  }
 
   $element += array(
     '#type' => 'timeperiod_select',
     '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : '',
+    '#polarity' => $polarity
   );
 
   // Apply unit settings.
