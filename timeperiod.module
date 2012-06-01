@@ -25,6 +25,7 @@ function timeperiod_element_info() {
       '3600' => array('max' => 23, 'step size' => 1),
       '60' => array('max' => 55, 'step size' => 5),
     ),
+    '#polarity' => array('positive' => TRUE),
   );
   return $types;
 }
