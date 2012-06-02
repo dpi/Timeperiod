@@ -25,7 +25,10 @@ function timeperiod_element_info() {
       '3600' => array('max' => 23, 'step size' => 1),
       '60' => array('max' => 55, 'step size' => 5),
     ),
-    '#polarity' => array('positive' => TRUE),
+    '#polarity' => array(
+      'positive' => TRUE,
+      'negative' => TRUE,
+    ),
   );
   return $types;
 }
@@ -136,20 +139,20 @@ function timeperiod_field_widget_info() {
  * Implements hook_field_widget_form().
  */
 function timeperiod_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
-  $polarity = array('positive' => TRUE);
+  $polarity = array('positive' => TRUE, 'negative' => TRUE);
 
-  if (is_numeric($instance['settings']['min']) && $instance['settings']['min'] < 0) {
-    $polarity['negative'] = TRUE;
+  if (is_numeric($instance['settings']['min']) && $instance['settings']['min'] >= 0) {
+    $polarity['negative'] = FALSE;
   }
 
-  if (is_numeric($instance['settings']['max']) && $instance['settings']['max'] < 0) {
+  if (is_numeric($instance['settings']['max']) && $instance['settings']['max'] <= 0) {
     $polarity['positive'] = FALSE;
   }
 
   $element += array(
     '#type' => 'timeperiod_select',
     '#default_value' => isset($items[$delta]['value']) ? $items[$delta]['value'] : '',
-    '#polarity' => $polarity
+    '#polarity' => $polarity,
   );
 
   // Apply unit settings.
